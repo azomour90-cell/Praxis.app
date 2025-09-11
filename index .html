@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRAXIS - Devis & Factures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style type="text/tailwindcss">
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        html { scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #111827, #374151);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .glass-effect {
+            background: rgba(30, 41, 59, 0.5); /* bg-slate-800/50 */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(100, 116, 139, 0.3); /* border-slate-600/30 */
+        }
+        
+        .form-input, .form-select { @apply w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg shadow-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200; }
+        
+        .btn { @apply px-5 py-2.5 rounded-full font-semibold shadow-md transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2; }
+        .btn-primary { @apply bg-cyan-500 hover:bg-cyan-400 text-slate-900 shadow-cyan-500/30; }
+        .btn-secondary { @apply bg-transparent border-2 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20; }
+        .btn-success { @apply bg-transparent border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500/20; }
+        .btn-danger { @apply bg-transparent border-2 border-red-500 text-red-400 hover:bg-red-500/20; }
+        
+        .nav-link { @apply flex items-center w-full text-left px-4 py-3 text-slate-300 rounded-lg hover:bg-slate-700/50 hover:text-white transition-colors duration-200; }
+        .nav-link.active { @apply bg-cyan-500 text-slate-900 font-bold shadow-lg shadow-cyan-500/30; }
+
+        .dashboard-card { @apply glass-effect p-6 rounded-2xl text-center cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-cyan-400; }
+        .content-card { @apply glass-effect p-6 md:p-8 rounded-2xl shadow-lg; }
+
+        .table-row-hover tr:hover { background-color: rgba(51, 65, 85, 0.5); }
+        .hidden { display: none; }
+        .sub-item-row td:first-child { padding-left: 2.5rem; }
+        .sub-item-row .form-input { font-style: italic; color: #9ca3af; }
+
+        /* Light theme for Creation View */
+        .light-theme {
+            background: #ffffff;
+            color: #111827;
+        }
+        .light-theme h1, .light-theme h2, .light-theme label, .light-theme p, .light-theme span {
+            color: #111827;
+        }
+        .light-theme .text-slate-400, .light-theme .text-slate-300 {
+            color: #4b5563;
+        }
+        .light-theme .form-input, .light-theme .form-select {
+            background-color: #f9fafb;
+            border-color: #d1d5db;
+            color: #1f2937; /* Darker text for inputs */
+        }
+        .light-theme .form-input::placeholder {
+            color: #9ca3af;
+        }
+        .light-theme .bg-slate-900\/50 {
+            background-color: #f9fafb;
+        }
+        .light-theme .border-b, .light-theme .border-t-2 {
+            border-color: #e5e7eb;
+        }
+        .light-theme .border-cyan-500\/30 {
+            border-color: #67e8f9;
+        }
+        .light-theme .bg-slate-700\/50 {
+            background-color: #f3f4f6;
+        }
+        .light-theme .text-white {
+            color: #111827;
+        }
+        .light-theme .text-cyan-400 {
+            color: #0e7490;
+        }
+        .light-theme .text-emerald-400 {
+            color: #047857;
+        }
+        .light-theme .bg-emerald-500\/10 {
+            background-color: #ecfdf5;
+        }
+        .light-theme .btn-secondary {
+            color: #0891b2;
+            border-color: #0891b2;
+        }
+        .light-theme .btn-success {
+             color: #059669;
+             border-color: #059669;
+        }
+        .light-theme .text-red-500 {
+            color: #dc2626;
+        }
+        .light-theme .text-emerald-400,
+        .light-theme .text-emerald-500 {
+            color: #059669;
+        }
+
+        /* Notification Toast */
+        #notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translate(-50%, 150%);
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: transform 0.4s ease-in-out;
+            z-index: 1000;
+        }
+        #notification.show {
+            transform: translate(-50%, 0);
+        }
+        #notification.success {
+            background-color: #10b981;
+            color: white;
+        }
+        #notification.error {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        /* Praxis Animation */
+        #logo-animation-container {
+            font-size: clamp(3rem, 15vw, 10rem); /* Responsive font size, smaller */
+            font-weight: 800; /* Extra bold */
+            color: rgba(100, 116, 139, 0.08); /* A very subtle slate color */
+            transition: color 0.5s ease;
+        }
+
+        #view-dashboard:hover #logo-animation-container {
+             color: rgba(100, 116, 139, 0.12); /* Slightly more visible on hover */
+        }
+        
+        .logo-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+    <datalist id="savedItemsDatalist"></datalist>
+    <datalist id="savedClientsDatalist"></datalist>
+
+    <div id="notification" class=""></div>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="w-64 glass-effect text-white flex-col p-4 fixed h-full shadow-2xl z-40 transform -translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white flex items-center justify-center logo-float">
+                    <span>PRAXIS</span>
+                </h1>
+            </div>
+            <nav class="flex flex-col space-y-2">
+                <button id="nav-dashboard" class="nav-link active"><i class="fas fa-home fa-fw mr-3"></i>Accueil</button>
+                <button id="nav-creation" class="nav-link"><i class="fas fa-edit fa-fw mr-3"></i>Création</button>
+                <button id="nav-clients" class="nav-link"><i class="fas fa-book-open fa-fw mr-3"></i>Clients & Articles</button>
+                <button id="nav-pending" class="nav-link"><i class="fas fa-hourglass-half fa-fw mr-3"></i>Devis en attente</button>
+                <button id="nav-history" class="nav-link"><i class="fas fa-history fa-fw mr-3"></i>Historique</button>
+                <button id="nav-settings" class="nav-link"><i class="fas fa-cog fa-fw mr-3"></i>Paramètres</button>
+            </nav>
+            <div class="mt-auto">
+                <p class="text-center text-xs text-slate-400 mt-4">&copy; 2025 PRAXIS</p>
+            </div>
+        </aside>
+        
+        <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden"></div>
+
+        <div class="flex-1 flex flex-col min-h-0">
+             <!-- Header with Menu Toggle -->
+            <header class="p-4 flex items-center sticky top-0 z-20 flex-shrink-0">
+                <button id="menu-toggle" class="text-2xl text-white glass-effect rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </header>
+
+            <main class="flex-1 overflow-y-auto px-4 md:px-8 pb-4">
+                <!-- View: Dashboard -->
+                <div id="view-dashboard" class="relative min-h-full">
+                    
+                    <!-- Background Logo -->
+                    <div id="logo-animation-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none">
+                        <span>PRAXIS</span>
+                    </div>
+
+                    <!-- Foreground Content -->
+                    <div class="relative z-10">
+                        <header class="mb-8">
+                            <h1 class="text-4xl font-bold text-white">Accueil</h1>
+                            <p class="text-slate-400">Bienvenue ! Que souhaitez-vous faire aujourd'hui ?</p>
+                        </header>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="dashboard-card" data-view="creation">
+                                <i class="fas fa-plus-circle text-7xl text-emerald-400 mb-4"></i>
+                                <h2 class="text-2xl font-bold text-white">Nouveau Document</h2>
+                                <p class="text-slate-400">Créer un nouveau devis ou une nouvelle facture.</p>
+                            </div>
+                            <div class="dashboard-card" data-view="clients">
+                                <i class="fas fa-users-cog text-7xl text-sky-400 mb-4"></i>
+                                <h2 class="text-2xl font-bold text-white">Gérer les Clients & Articles</h2>
+                                <p class="text-slate-400">Ajouter ou modifier vos données de base.</p>
+                            </div>
+                            <div class="dashboard-card" data-view="history">
+                                <i class="fas fa-archive text-7xl text-amber-400 mb-4"></i>
+                                <h2 class="text-2xl font-bold text-white">Consulter l'Historique</h2>
+                                <p class="text-slate-400">Retrouver tous vos documents sauvegardés.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- View: Creation -->
+                <div id="view-creation" class="hidden">
+                    <div class="content-card light-theme p-4 md:p-6">
+                        <input type="hidden" id="docId" value="">
+                        <input type="hidden" id="originDocId" value="">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div><label for="docType" class="block text-sm font-medium mb-1">Type</label><select id="docType" class="form-select"><option value="Devis">Devis</option><option value="Facture">Facture</option></select></div>
+                            <div><label for="docNumber" class="block text-sm font-medium mb-1">Numéro</label><input type="text" id="docNumber" class="form-input" placeholder="Ex: FACT-2024-001"></div>
+                            <div><label for="docDate" class="block text-sm font-medium mb-1">Date d'émission</label><input type="date" id="docDate" class="form-input"></div>
+                            <div id="validity-container"><label for="docValidity" class="block text-sm font-medium mb-1">Validité de l'offre</label><input type="text" id="docValidity" class="form-input" value="30 jours"></div>
+                            <div id="po-number-container" class="hidden"><label for="bonDeCommande" class="block text-sm font-medium mb-1">N° Bon de Commande</label><input type="text" id="bonDeCommande" class="form-input" placeholder="N° du BDC client"></div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-slate-900/50 p-4 rounded-lg">
+                                <h2 class="text-xl font-semibold border-b-2 pb-2 mb-4">De (Vous)</h2>
+                                <input type="text" id="fromName" class="form-input mb-2" placeholder="Nom de votre entreprise">
+                                <textarea id="fromAddress" class="form-input mb-2" rows="3" placeholder="Votre adresse complète"></textarea>
+                                <input type="text" id="fromInsurance" class="form-input" placeholder="Assurance (ex: Décennale MAAF n°12345)">
+                            </div>
+                            <div class="bg-slate-900/50 p-4 rounded-lg">
+                                <h2 class="text-xl font-semibold border-b-2 pb-2 mb-4">Pour (Client)</h2>
+                                <input type="text" id="toName" class="form-input mb-2" list="savedClientsDatalist" placeholder="Nom du client / de l'entreprise">
+                                <textarea id="toAddress" class="form-input" rows="3" placeholder="Adresse complète du client"></textarea>
+                            </div>
+                        </div>
+                        <div>
+                             <div class="mb-4">
+                               <label for="chantierName" class="block text-sm font-medium mb-1">Nom du chantier</label>
+                               <input type="text" id="chantierName" class="form-input" placeholder="Ex: Rénovation salle de bain M. Dupont">
+                            </div>
+                            <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-700/50 text-xs uppercase"><tr><th class="px-4 py-3">Description</th><th class="px-4 py-3 w-24">Qté</th><th class="px-4 py-3 w-32">Prix Unitaire (€)</th><th class="px-4 py-3 w-32">Total (€)</th><th class="px-4 py-3 w-20"></th></tr></thead><tbody id="itemList"></tbody></table></div>
+                            <button id="addItemBtn" class="mt-4 btn btn-secondary text-sm"><i class="fas fa-plus mr-2"></i>Ajouter une ligne</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            <div>
+                                <label for="notes" class="block text-sm font-medium mb-1">Notes / Conditions</label><textarea id="notes" class="form-input" rows="4" placeholder="Ex: Devis reçu avant l'exécution des travaux..."></textarea>
+                                <div class="flex items-center justify-start pt-4">
+                                    <input type="checkbox" id="noVat" class="h-4 w-4 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500">
+                                    <label for="noVat" class="ml-2 block text-sm">TVA non applicable (art. 293B du CGI)</label>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end"><div class="w-full max-w-sm space-y-3"><div class="flex justify-between text-lg"><span class="font-medium">Sous-total</span><span id="subTotal" class="font-semibold">0.00 €</span></div><div id="taxRow" class="flex justify-between items-center text-lg"><div class="flex items-center"><span class="font-medium mr-2">TVA</span><input type="number" id="taxRate" class="form-input w-20 text-center" value="20" step="0.1"><span class="ml-1">%</span></div><span id="taxAmount" class="font-semibold">0.00 €</span></div><hr class="my-2 border-t-2 border-dashed"><div class="flex justify-between text-2xl font-bold"><span>TOTAL</span><span id="grandTotal">0.00 €</span></div><div class="flex justify-between items-center text-lg"><span class="font-medium">Acompte versé</span><input type="number" id="deposit" class="form-input w-32 text-right" value="0" step="0.01"></div><div class="flex justify-between text-xl font-bold bg-emerald-500/10 p-2 rounded-md"><span>Solde à payer</span><span id="balanceDue">0.00 €</span></div></div></div>
+                        </div>
+                        <div class="mt-8 flex flex-wrap gap-4 justify-center items-center"><button id="saveBtn" class="btn btn-success text-lg"><i class="fas fa-save mr-2"></i>Sauvegarder</button><button id="transformBtn" class="btn btn-secondary text-lg hidden"><i class="fas fa-exchange-alt mr-2"></i>Transformer</button><button id="generatePdfBtn" class="btn btn-primary text-lg"><i class="fas fa-file-pdf mr-2"></i>Générer PDF</button><button id="sendMailBtn" class="btn btn-secondary text-lg"><i class="fas fa-paper-plane mr-2"></i>Envoyer</button></div>
+                    </div>
+                </div>
+
+                <!-- View: Clients & Articles -->
+                <div id="view-clients" class="hidden">
+                     <h1 class="text-3xl font-bold text-white mb-6">Gestion des Clients & Articles</h1>
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                        <div class="lg:col-span-2 content-card">
+                            <h2 class="text-2xl font-bold text-white mb-4">Ajouter / Modifier un Client</h2>
+                            <form id="newClientForm" class="space-y-4">
+                                <input type="hidden" id="clientId">
+                                <div><label for="clientName" class="block text-sm font-medium text-slate-300">Nom du Client</label><input type="text" id="clientName" class="form-input mt-1" required></div>
+                                <div><label for="clientRcs" class="block text-sm font-medium text-slate-300">RCS</label><input type="text" id="clientRcs" class="form-input mt-1"></div>
+                                <div><label for="clientAddress" class="block text-sm font-medium text-slate-300">Adresse</label><textarea id="clientAddress" rows="3" class="form-input mt-1"></textarea></div>
+                                <div class="flex gap-4"><button type="submit" class="btn btn-primary"><i class="fas fa-save mr-2"></i>Enregistrer</button><button type="reset" id="cancelClientForm" class="btn btn-secondary">Annuler</button></div>
+                            </form>
+                        </div>
+                        <div class="lg:col-span-3 content-card">
+                           <h2 class="text-2xl font-bold text-white mb-4">Liste des Clients</h2>
+                           <div class="overflow-auto max-h-96"><table class="w-full text-sm text-left"><thead class="bg-slate-700/50 text-xs text-slate-300 uppercase sticky top-0"><tr><th class="px-4 py-2">Nom</th><th class="px-4 py-2">Adresse</th><th class="px-4 py-2">Actions</th></tr></thead><tbody id="savedClientsList" class="table-row-hover"></tbody></table></div>
+                        </div>
+                    </div>
+                     <!-- Articles Library -->
+                    <div class="grid grid-cols-1 mt-8">
+                        <div class="content-card">
+                            <h2 class="text-2xl font-bold text-white mb-4">Bibliothèque d'Articles</h2>
+                            <form id="newItemForm" class="flex gap-2 mb-4"><input type="text" id="newItemDescription" class="form-input" placeholder="Description" required><input type="number" id="newItemPrice" class="form-input w-32 bg-slate-800" placeholder="Prix (€)" step="0.01" required><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i></button></form>
+                            <div class="overflow-auto max-h-60"><table class="w-full text-sm text-left"><thead class="bg-slate-700/50 text-xs text-slate-300 uppercase sticky top-0"><tr><th class="px-4 py-2">Description</th><th class="px-4 py-2">Prix</th><th class="px-4 py-2"></th></tr></thead><tbody id="savedItemsList" class="table-row-hover"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Pending Quotes -->
+                <div id="view-pending" class="hidden">
+                    <div class="content-card">
+                        <h2 class="text-2xl font-bold text-white mb-4">Devis en attente de facturation</h2>
+                        <div class="overflow-auto max-h-[70vh]"><table class="w-full text-sm text-left"><thead class="bg-slate-700/50 text-xs text-slate-300 uppercase sticky top-0"><tr><th class="px-4 py-3">Numéro</th><th class="px-4 py-3">Client</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Total</th><th class="px-4 py-3 text-center">Actions</th></tr></thead><tbody id="pendingDocsList" class="table-row-hover"></tbody></table></div>
+                    </div>
+                </div>
+
+                <!-- View: History -->
+                <div id="view-history" class="hidden">
+                    <div class="content-card">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                             <h2 class="text-2xl font-bold text-white">Historique</h2>
+                             <div class="flex items-center gap-2" id="historyFilter">
+                                 <button data-filter="all" class="btn btn-secondary btn-sm active">Tous</button>
+                                 <button data-filter="Devis" class="btn btn-secondary btn-sm">Devis</button>
+                                 <button data-filter="Facture" class="btn btn-secondary btn-sm">Factures</button>
+                             </div>
+                        </div>
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-sm text-slate-400">Sélectionnez des factures pour les envoyer.</span>
+                             <button id="emailSelectionBtn" class="btn btn-primary text-sm"><i class="fas fa-envelope mr-2"></i>Envoyer sélection</button>
+                        </div>
+                        <div class="overflow-auto max-h-[60vh]"><table class="w-full text-sm text-left"><thead class="bg-slate-700/50 text-xs text-slate-300 uppercase sticky top-0"><tr><th class="px-4 py-3 w-8"><input type="checkbox" id="selectAllHistory" class="h-4 w-4 bg-slate-800 border-slate-600 rounded"></th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Numéro</th><th class="px-4 py-3">Client</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Total</th><th class="px-4 py-3 text-center">Actions</th></tr></thead><tbody id="savedDocsList" class="table-row-hover"></tbody></table></div>
+                    </div>
+                </div>
+                
+                <!-- View: Settings -->
+                <div id="view-settings" class="hidden">
+                    <div class="content-card max-w-2xl mx-auto">
+                        <h1 class="text-3xl font-bold text-white mb-6">Paramètres</h1>
+                        <div class="mb-8">
+                            <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2">Informations de l'entreprise</h2>
+                            <form id="settingsForm" class="space-y-4">
+                                <div>
+                                    <label for="settingsFromName" class="block text-sm font-medium text-slate-300 mb-1">Nom de votre entreprise</label>
+                                    <input type="text" id="settingsFromName" class="form-input">
+                                </div>
+                                <div>
+                                    <label for="settingsFromRcs" class="block text-sm font-medium text-slate-300 mb-1">Votre RCS (ou SIRET)</label>
+                                    <input type="text" id="settingsFromRcs" class="form-input">
+                                </div>
+                                <div>
+                                    <label for="settingsFromAddress" class="block text-sm font-medium text-slate-300 mb-1">Votre adresse complète</label>
+                                    <textarea id="settingsFromAddress" class="form-input" rows="3"></textarea>
+                                </div>
+                                 <div>
+                                    <label for="settingsFromRib" class="block text-sm font-medium text-slate-300 mb-1">Votre RIB (pour les factures)</label>
+                                    <textarea id="settingsFromRib" class="form-input" rows="3" placeholder="IBAN, BIC..."></textarea>
+                                </div>
+                                <div>
+                                    <label for="settingsFromInsurance" class="block text-sm font-medium text-slate-300 mb-1">Votre assurance (ex: Décennale)</label>
+                                    <input type="text" id="settingsFromInsurance" class="form-input">
+                                </div>
+                                <div>
+                                    <label for="settingsLogoUrl" class="block text-sm font-medium text-slate-300 mb-1">URL du logo (pour les PDF)</label>
+                                    <input type="url" id="settingsLogoUrl" class="form-input" placeholder="https://votresite.com/logo.png">
+                                </div>
+                                <div class="pt-4">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-2"></i>Sauvegarder les informations</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div>
+                            <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2">Gestion des Données</h2>
+                            <p class="text-slate-400 text-sm mb-4">Sauvegardez toutes vos données dans un fichier, ou restaurez-les depuis une sauvegarde.</p>
+                            <div class="flex gap-4 flex-wrap">
+                                <button id="exportDataBtn" class="btn btn-secondary"><i class="fas fa-download mr-2"></i>Exporter les données</button>
+                                <button id="importDataBtn" class="btn btn-secondary"><i class="fas fa-upload mr-2"></i>Importer les données</button>
+                            </div>
+                            <div class="mt-6">
+                                 <button id="restoreAutoBackupBtn" class="btn btn-danger"><i class="fas fa-undo mr-2"></i>Restaurer la sauvegarde auto</button>
+                                 <p id="autoBackupStatus" class="text-slate-400 text-xs mt-2">La sauvegarde automatique s'activera après votre première exportation manuelle.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { jsPDF } = window.jspdf;
+            const { PDFDocument } = window.PDFLib;
+
+            // --- DOM Elements ---
+            const DOM = {
+                views: document.querySelectorAll('main > div[id^="view-"]'),
+                navButtons: document.querySelectorAll('aside .nav-link'),
+                dashboardCards: document.querySelectorAll('.dashboard-card'),
+                sidebar: document.getElementById('sidebar'),
+                menuToggle: document.getElementById('menu-toggle'),
+                overlay: document.getElementById('overlay'),
+                notification: document.getElementById('notification'),
+                creationView: document.getElementById('view-creation'),
+
+                itemList: document.getElementById('itemList'),
+                taxRateInput: document.getElementById('taxRate'),
+                noVatCheckbox: document.getElementById('noVat'),
+                docIdInput: document.getElementById('docId'),
+                originDocIdInput: document.getElementById('originDocId'),
+                transformBtn: document.getElementById('transformBtn'),
+                docType: document.getElementById('docType'),
+                validityContainer: document.getElementById('validity-container'),
+                poNumberContainer: document.getElementById('po-number-container'),
+                bonDeCommandeInput: document.getElementById('bonDeCommande'),
+                depositInput: document.getElementById('deposit'),
+                chantierNameInput: document.getElementById('chantierName'),
+                
+                fromNameInput: document.getElementById('fromName'),
+                fromAddressInput: document.getElementById('fromAddress'),
+                fromInsuranceInput: document.getElementById('fromInsurance'),
+                toNameInput: document.getElementById('toName'),
+                toAddressInput: document.getElementById('toAddress'),
+                
+                newClientForm: document.getElementById('newClientForm'),
+                clientIdInput: document.getElementById('clientId'),
+                clientNameInput: document.getElementById('clientName'),
+                clientRcsInput: document.getElementById('clientRcs'),
+                clientAddressInput: document.getElementById('clientAddress'),
+                savedClientsList: document.getElementById('savedClientsList'),
+                savedClientsDatalist: document.getElementById('savedClientsDatalist'),
+                
+                savedDocsList: document.getElementById('savedDocsList'),
+                pendingDocsList: document.getElementById('pendingDocsList'),
+                historyFilter: document.getElementById('historyFilter'),
+                
+                newItemForm: document.getElementById('newItemForm'),
+                savedItemsList: document.getElementById('savedItemsList'),
+                savedItemsDatalist: document.getElementById('savedItemsDatalist'),
+
+                settingsForm: document.getElementById('settingsForm'),
+                settingsFromName: document.getElementById('settingsFromName'),
+                settingsFromRcs: document.getElementById('settingsFromRcs'),
+                settingsFromAddress: document.getElementById('settingsFromAddress'),
+                settingsFromRib: document.getElementById('settingsFromRib'),
+                settingsFromInsurance: document.getElementById('settingsFromInsurance'),
+                settingsLogoUrl: document.getElementById('settingsLogoUrl'),
+                
+                exportDataBtn: document.getElementById('exportDataBtn'),
+                importDataBtn: document.getElementById('importDataBtn'),
+                restoreAutoBackupBtn: document.getElementById('restoreAutoBackupBtn'),
+                autoBackupStatus: document.getElementById('autoBackupStatus'),
+            };
+
+            const getSavedData = (key) => JSON.parse(localStorage.getItem(key)) || [];
+            const saveData = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+            
+            // --- Notification ---
+            const showNotification = (message, type = 'success') => {
+                DOM.notification.textContent = message;
+                DOM.notification.className = `${type} show`;
+                setTimeout(() => {
+                    DOM.notification.classList.remove('show');
+                }, 3000);
+            };
+
+            // --- Mobile Menu ---
+            const toggleMenu = () => {
+                DOM.sidebar.classList.toggle('-translate-x-full');
+                DOM.overlay.classList.toggle('hidden');
+            };
+
+            DOM.menuToggle.addEventListener('click', toggleMenu);
+            DOM.overlay.addEventListener('click', toggleMenu);
+
+            // --- View Management ---
+            const switchView = (viewId) => {
+                DOM.views.forEach(view => view.classList.add('hidden'));
+                const targetView = document.getElementById(`view-${viewId}`);
+                if (targetView) targetView.classList.remove('hidden');
+                
+                DOM.navButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.id === `nav-${viewId}`);
+                });
+
+                if (viewId === 'settings') {
+                    updateAutoBackupStatus();
+                }
+
+                if (!DOM.sidebar.classList.contains('-translate-x-full')) {
+                    toggleMenu();
+                }
+            };
+
+            // --- Draft Management ---
+            const clearDraft = () => localStorage.removeItem('praxisDraftDoc');
+
+            const autoSaveDraft = () => {
+                const toName = DOM.toNameInput.value.trim();
+                const itemsRows = document.querySelectorAll('#itemList tr:not(.sub-item-row)');
+                const firstItemDescription = itemsRows[0]?.querySelector('.description').value.trim();
+                if (!toName && itemsRows.length <= 1 && !firstItemDescription) {
+                    return; 
+                }
+
+                const items = [];
+                let currentMainItem = null;
+                document.querySelectorAll('#itemList tr').forEach(row => {
+                    if (row.classList.contains('sub-item-row')) {
+                        if(currentMainItem) currentMainItem.subItems.push({ description: row.querySelector('input').value });
+                    } else {
+                        currentMainItem = { description: row.querySelector('.description').value, quantity: row.querySelector('.quantity').value, price: row.querySelector('.price').value, subItems: [] };
+                        items.push(currentMainItem);
+                    }
+                });
+
+                const draftData = {
+                    docType: DOM.docType.value,
+                    docNumber: document.getElementById('docNumber').value,
+                    docDate: document.getElementById('docDate').value,
+                    docValidity: document.getElementById('docValidity').value,
+                    bonDeCommande: DOM.bonDeCommandeInput.value,
+                    chantierName: DOM.chantierNameInput.value,
+                    fromName: DOM.fromNameInput.value, fromAddress: DOM.fromAddressInput.value,
+                    fromInsurance: DOM.fromInsuranceInput.value, toName: DOM.toNameInput.value,
+                    toAddress: DOM.toAddressInput.value, notes: document.getElementById('notes').value,
+                    taxRate: DOM.taxRateInput.value, noVat: DOM.noVatCheckbox.checked,
+                    deposit: DOM.depositInput.value, items
+                };
+                saveData('praxisDraftDoc', draftData);
+            };
+
+            const loadDraft = (draft) => {
+                resetForm(); // Start with a clean slate
+                DOM.itemList.innerHTML = '';
+                
+                DOM.docType.value = draft.docType || 'Devis';
+                ['docNumber', 'docDate', 'fromName', 'fromAddress', 'fromInsurance', 'toName', 'toAddress', 'notes', 'bonDeCommande', 'chantierName'].forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el && draft[key]) el.value = draft[key];
+                });
+
+                document.getElementById('docValidity').value = draft.docValidity || '30 jours';
+                DOM.taxRateInput.value = draft.taxRate || '20';
+                DOM.noVatCheckbox.checked = draft.noVat || false;
+                DOM.depositInput.value = draft.deposit || 0;
+                
+                (draft.items || []).forEach(item => addNewItem(item));
+                
+                calculateTotals();
+                toggleFormFields();
+            };
+
+             // --- Auto Backup Management ---
+            const autoBackupData = () => {
+                if (localStorage.getItem('praxisAutoBackupEnabled') !== 'true') return;
+
+                const backupData = { timestamp: new Date().toISOString(), data: {} };
+                const keysToBackup = ['invoiceAppDocs', 'invoiceAppClients', 'invoiceAppItems', 'praxisDraftDoc', 'praxisSettings_fromName', 'praxisSettings_fromRcs', 'praxisSettings_fromAddress', 'praxisSettings_fromInsurance', 'praxisSettings_fromRib', 'praxisSettings_logoUrl'];
+                
+                keysToBackup.forEach(key => {
+                    const data = localStorage.getItem(key);
+                    if (data) backupData.data[key] = data;
+                });
+                
+                saveData('praxisAutoBackup', backupData);
+                updateAutoBackupStatus();
+                console.log('Auto-backup performed at', new Date().toLocaleTimeString());
+            };
+
+            const updateAutoBackupStatus = () => {
+                const backup = getSavedData('praxisAutoBackup');
+                if (localStorage.getItem('praxisAutoBackupEnabled') === 'true') {
+                    if (backup.timestamp) {
+                        const backupDate = new Date(backup.timestamp).toLocaleString('fr-FR');
+                        DOM.autoBackupStatus.innerHTML = `Dernière sauvegarde auto : <span class="font-semibold text-white">${backupDate}</span>`;
+                    } else {
+                        DOM.autoBackupStatus.innerHTML = `Sauvegarde auto activée. S'effectuera lors de la prochaine modification.`;
+                    }
+                } else {
+                    DOM.autoBackupStatus.innerHTML = `La sauvegarde automatique s'activera après votre première exportation manuelle.`;
+                }
+            };
+
+
+            // --- All Functions defined once ---
+            const calculateTotals = () => {
+                let subTotal = 0;
+                document.querySelectorAll('#itemList tr:not(.sub-item-row)').forEach(row => {
+                    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                    const price = parseFloat(row.querySelector('.price').value) || 0;
+                    const itemTotal = quantity * price;
+                    row.querySelector('.item-total').textContent = `${itemTotal.toFixed(2)} €`;
+                    subTotal += itemTotal;
+                });
+                let taxAmount = 0;
+                let grandTotal = subTotal;
+                if (!DOM.noVatCheckbox.checked) {
+                    const taxRate = parseFloat(DOM.taxRateInput.value) || 0;
+                    taxAmount = subTotal * (taxRate / 100);
+                    grandTotal = subTotal + taxAmount;
+                    document.getElementById('taxRow').classList.remove('hidden');
+                } else {
+                    document.getElementById('taxRow').classList.add('hidden');
+                }
+                const deposit = parseFloat(DOM.depositInput.value) || 0;
+                const balanceDue = grandTotal - deposit;
+                document.getElementById('subTotal').textContent = `${subTotal.toFixed(2)} €`;
+                document.getElementById('taxAmount').textContent = `${taxAmount.toFixed(2)} €`;
+                document.getElementById('grandTotal').textContent = `${grandTotal.toFixed(2)} €`;
+                document.getElementById('balanceDue').textContent = `${balanceDue.toFixed(2)} €`;
+            };
+            
+            const addNewItem = (item = { description: '', quantity: 1, price: 0.00, subItems: [] }) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.innerHTML = `<td class="px-4 py-2"><input type="text" class="form-input description" list="savedItemsDatalist" placeholder="Description" value="${item.description}"></td><td class="px-4 py-2"><input type="number" class="form-input text-center quantity" value="${item.quantity}" min="0"></td><td class="px-4 py-2"><input type="number" class="form-input text-right price" value="${(parseFloat(item.price) || 0).toFixed(2)}" step="0.01" min="0"></td><td class="px-4 py-2 text-right font-semibold item-total">0.00 €</td><td class="px-4 py-2 text-center space-x-2"><button class="text-emerald-500 hover:text-emerald-700 addSubItemBtn"><i class="fas fa-plus-circle"></i></button><button class="text-red-500 hover:text-red-700 removeItemBtn"><i class="fas fa-trash-alt"></i></button></td>`;
+                DOM.itemList.appendChild(row);
+                (item.subItems || []).forEach(sub => addNewSubItem(sub, row));
+            };
+
+            const addNewSubItem = (subItem = { description: '' }, targetRow) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b sub-item-row';
+                row.innerHTML = `<td class="px-4 py-2" colspan="4"><input type="text" class="form-input" placeholder="Détail..." value="${subItem.description}"></td><td class="px-4 py-2 text-center"><button class="text-red-500 hover:text-red-700 removeItemBtn"><i class="fas fa-trash-alt"></i></button></td>`;
+                targetRow.parentNode.insertBefore(row, targetRow.nextSibling);
+            };
+
+            const toggleFormFields = () => {
+                const isInvoice = DOM.docType.value === 'Facture';
+                DOM.validityContainer.classList.toggle('hidden', isInvoice);
+                DOM.poNumberContainer.classList.toggle('hidden', !isInvoice);
+                if (DOM.docIdInput.value === '') { // Only suggest new number if it's a new doc
+                    document.getElementById('docNumber').value = getNextDocNumber(DOM.docType.value);
+                }
+            };
+
+            const resetForm = () => {
+                DOM.newClientForm.reset();
+                ['docId', 'originDocId', 'clientId'].forEach(id => document.getElementById(id).value = '');
+                DOM.itemList.innerHTML = '';
+                ['docNumber', 'toName', 'toAddress', 'notes', 'bonDeCommande', 'chantierName'].forEach(id => document.getElementById(id).value = '');
+                DOM.depositInput.value = '0';
+                document.getElementById('docDate').valueAsDate = new Date();
+
+                // Prefill company info
+                DOM.fromNameInput.value = localStorage.getItem('praxisSettings_fromName') || '';
+                DOM.fromAddressInput.value = localStorage.getItem('praxisSettings_fromAddress') || '';
+                DOM.fromInsuranceInput.value = localStorage.getItem('praxisSettings_fromInsurance') || '';
+
+                toggleFormFields();
+                addNewItem();
+                calculateTotals();
+                DOM.transformBtn.classList.add('hidden');
+            };
+
+            const getNextDocNumber = (type) => {
+                const docs = getSavedData('invoiceAppDocs');
+                const prefix = type === 'Devis' ? 'DEV-' : 'FACT-';
+                const relevantDocs = docs.filter(d => d.docNumber && d.docNumber.startsWith(prefix));
+                if (relevantDocs.length === 0) return `${prefix}${new Date().getFullYear()}-001`;
+                const lastNum = relevantDocs.reduce((max, d) => Math.max(max, parseInt(d.docNumber.split('-').pop()) || 0), 0);
+                return `${prefix}${new Date().getFullYear()}-${(lastNum + 1).toString().padStart(3, '0')}`;
+            };
+            
+            const renderAll = (historyFilter = 'all') => {
+                renderSavedClients();
+                renderSavedItems();
+                renderSavedDocs(historyFilter);
+                renderPendingDocs();
+            };
+
+            const renderSavedClients = () => {
+                const clients = getSavedData('invoiceAppClients');
+                DOM.savedClientsList.innerHTML = '';
+                DOM.savedClientsDatalist.innerHTML = '';
+                clients.forEach(client => {
+                    const row = document.createElement('tr');
+                    const truncatedAddress = (client.address || '').length > 30 ? client.address.substring(0, 30) + '...' : client.address;
+                    row.innerHTML = `<td class="px-4 py-2">${client.name}</td><td class="px-4 py-2 text-slate-400">${truncatedAddress}</td><td class="px-4 py-2 text-center space-x-2"><button class="text-sky-400 hover:text-sky-300 select-client-btn" data-id="${client.id}" title="Utiliser ce client"><i class="fas fa-check-circle"></i></button><button class="text-indigo-400 hover:text-indigo-300 edit-client-btn" data-id="${client.id}" title="Modifier"><i class="fas fa-edit"></i></button><button class="text-red-500 hover:text-red-400 delete-client-btn" data-id="${client.id}" title="Supprimer"><i class="fas fa-trash"></i></button></td>`;
+                    DOM.savedClientsList.appendChild(row);
+                    DOM.savedClientsDatalist.innerHTML += `<option value="${client.name}">`;
+                });
+            };
+            
+            const renderSavedItems = () => {
+                const items = getSavedData('invoiceAppItems');
+                DOM.savedItemsList.innerHTML = items.map(item => `<tr>
+                    <td class="px-4 py-2">${item.description}</td>
+                    <td class="px-4 py-2 text-right">
+                        <span class="block text-xs text-slate-400">Prix</span>
+                        <span class="font-semibold text-white">${(parseFloat(item.price) || 0).toFixed(2)} €</span>
+                    </td>
+                    <td class="px-4 py-2 text-center"><button class="text-red-500 hover:text-red-400 delete-item-btn" data-id="${item.id}"><i class="fas fa-trash"></i></button></td>
+                </tr>`).join('');
+                DOM.savedItemsDatalist.innerHTML = items.map(item => `<option value="${item.description}">`).join('');
+            };
+
+            const renderSavedDocs = (filter = 'all') => {
+                let docs = getSavedData('invoiceAppDocs');
+                if (filter !== 'all') {
+                    docs = docs.filter(doc => doc.docType === filter);
+                }
+                DOM.savedDocsList.innerHTML = docs.length === 0 ? '<tr><td colspan="7" class="text-center py-4 text-slate-400">Aucun document.</td></tr>' : docs.sort((a, b) => b.id - a.id).map(doc => `<tr class="border-b border-slate-700">
+                    <td class="px-4 py-2 text-center"><input type="checkbox" class="doc-select-checkbox h-4 w-4 bg-slate-800 border-slate-600 rounded" data-id="${doc.id}" ${doc.docType !== 'Facture' ? 'disabled' : ''}></td>
+                    <td class="px-4 py-2">${doc.docType}</td>
+                    <td class="px-4 py-2 font-mono">${doc.docNumber}</td>
+                    <td class="px-4 py-2">${doc.toName}</td>
+                    <td class="px-4 py-2">${new Date(doc.docDate).toLocaleDateString('fr-FR')}</td>
+                    <td class="px-4 py-2 font-semibold text-white">${doc.grandTotal}</td>
+                    <td class="px-4 py-2 text-center space-x-2"><button class="text-indigo-400 hover:text-indigo-300 load-btn" data-id="${doc.id}" title="Charger"><i class="fas fa-edit"></i></button><button class="text-red-500 hover:text-red-400 delete-btn" data-id="${doc.id}" title="Supprimer"><i class="fas fa-trash"></i></button></td>
+                </tr>`).join('');
+            };
+
+            const renderPendingDocs = () => {
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+                const docs = getSavedData('invoiceAppDocs').filter(d => d.docType === 'Devis' && d.status !== 'invoiced');
+                DOM.pendingDocsList.innerHTML = docs.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-slate-400">Aucun devis en attente.</td></tr>' : docs.sort((a,b) => b.id - a.id).map(doc => {
+                    const docDate = new Date(doc.docDate);
+                    const isOverdue = docDate < threeMonthsAgo;
+                    const rowClass = isOverdue ? 'bg-red-500/20 text-red-300' : 'border-b border-slate-700';
+                    return `<tr class="${rowClass}"><td class="px-4 py-2 font-mono">${doc.docNumber}</td><td class="px-4 py-2">${doc.toName}</td><td class="px-4 py-2">${new Date(doc.docDate).toLocaleDateString('fr-FR')}</td><td class="px-4 py-2 font-semibold text-white">${doc.grandTotal}</td><td class="px-4 py-2 text-center space-x-2"><button class="text-indigo-400 hover:text-indigo-300 load-btn" data-id="${doc.id}" title="Charger"><i class="fas fa-edit"></i></button><button class="text-emerald-400 hover:text-emerald-300 transform-btn-list" data-id="${doc.id}" title="Transformer en facture"><i class="fas fa-exchange-alt"></i></button></td></tr>`
+                }).join('');
+            };
+
+            const saveCurrentDoc = () => {
+                const items = [];
+                let currentMainItem = null;
+                document.querySelectorAll('#itemList tr').forEach(row => {
+                    if (row.classList.contains('sub-item-row')) {
+                        if(currentMainItem) currentMainItem.subItems.push({ description: row.querySelector('input').value });
+                    } else {
+                        currentMainItem = { description: row.querySelector('.description').value, quantity: row.querySelector('.quantity').value, price: row.querySelector('.price').value, subItems: [] };
+                        items.push(currentMainItem);
+                    }
+                });
+                const docData = {
+                    id: DOM.docIdInput.value ? parseInt(DOM.docIdInput.value) : Date.now(),
+                    docType: DOM.docType.value,
+                    docNumber: document.getElementById('docNumber').value,
+                    docDate: document.getElementById('docDate').value,
+                    docValidity: document.getElementById('docValidity').value,
+                    bonDeCommande: DOM.bonDeCommandeInput.value,
+                    chantierName: DOM.chantierNameInput.value,
+                    fromName: DOM.fromNameInput.value, fromAddress: DOM.fromAddressInput.value,
+                    fromInsurance: DOM.fromInsuranceInput.value, toName: DOM.toNameInput.value,
+                    toAddress: DOM.toAddressInput.value, notes: document.getElementById('notes').value,
+                    taxRate: DOM.taxRateInput.value, noVat: DOM.noVatCheckbox.checked,
+                    deposit: DOM.depositInput.value, grandTotal: document.getElementById('grandTotal').textContent, items,
+                    status: DOM.docType.value === 'Devis' ? 'pending' : 'issued'
+                };
+                let docs = getSavedData('invoiceAppDocs');
+                const idx = docs.findIndex(d => d.id === docData.id);
+                if (idx > -1) {
+                    docData.status = docs[idx].status; // Preserve status on edit
+                    docs[idx] = docData;
+                } else {
+                    docs.push(docData);
+                }
+                
+                const originId = parseInt(DOM.originDocIdInput.value);
+                if(originId && docData.docType === 'Facture') {
+                    const originalDevis = docs.find(d => d.id === originId);
+                    if(originalDevis) originalDevis.status = 'invoiced';
+                }
+
+                saveData('invoiceAppDocs', docs);
+                clearDraft();
+                renderAll();
+                DOM.docIdInput.value = docData.id;
+                showNotification(`${docData.docType} sauvegardé !`);
+                autoBackupData();
+            };
+            
+            const loadDoc = (id) => {
+                const doc = getSavedData('invoiceAppDocs').find(d => d.id === id);
+                if (!doc) return;
+                resetForm();
+                DOM.itemList.innerHTML = '';
+                DOM.docIdInput.value = doc.id;
+                DOM.docType.value = doc.docType;
+                ['docNumber', 'docDate', 'fromName', 'fromAddress', 'fromInsurance', 'toName', 'toAddress', 'notes', 'bonDeCommande', 'chantierName'].forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el) el.value = doc[key] || '';
+                });
+                document.getElementById('docValidity').value = doc.docValidity || '30 jours';
+                DOM.taxRateInput.value = doc.taxRate;
+                DOM.noVatCheckbox.checked = doc.noVat;
+                DOM.depositInput.value = doc.deposit || 0;
+                doc.items.forEach(item => addNewItem(item));
+                toggleFormFields();
+                if(doc.docType === 'Devis') DOM.transformBtn.classList.remove('hidden');
+                calculateTotals();
+                switchView('creation');
+            };
+
+            const deleteDoc = (id) => {
+                if (confirm('Supprimer ce document ?')) {
+                    saveData('invoiceAppDocs', getSavedData('invoiceAppDocs').filter(d => d.id !== id));
+                    renderAll();
+                    if (DOM.docIdInput.value === String(id)) resetForm();
+                    autoBackupData();
+                }
+            };
+            
+            const transformDoc = (id) => {
+                 const doc = getSavedData('invoiceAppDocs').find(d => d.id === id);
+                 if (!doc || doc.docType !== 'Devis') return;
+                 loadDoc(id);
+                 DOM.docType.value = 'Facture';
+                 toggleFormFields();
+                 document.getElementById('docDate').valueAsDate = new Date();
+                 DOM.originDocIdInput.value = DOM.docIdInput.value;
+                 DOM.docIdInput.value = ''; // To create a new doc
+                 DOM.transformBtn.classList.add('hidden');
+                 showNotification('Devis prêt à être sauvegardé comme une nouvelle facture.');
+                 switchView('creation');
+            }
+
+            // --- Event Listeners ---
+            const handleCreateNew = () => {
+                const draftData = getSavedData('praxisDraftDoc');
+                if (Object.keys(draftData).length > 0) {
+                    if (confirm("Une saisie en cours a été sauvegardée. Voulez-vous la reprendre ?\n\nCliquez sur 'OK' pour reprendre ou 'Annuler' pour commencer un nouveau document.")) {
+                        loadDraft(draftData);
+                    } else {
+                        clearDraft();
+                        resetForm();
+                    }
+                } else {
+                    resetForm();
+                }
+                switchView('creation');
+            };
+
+            DOM.navButtons.forEach(btn => {
+                const viewId = btn.id.split('-')[1];
+                if (viewId === 'creation') {
+                    btn.addEventListener('click', handleCreateNew);
+                } else {
+                    btn.addEventListener('click', () => switchView(viewId));
+                }
+            });
+
+            DOM.dashboardCards.forEach(card => {
+                const viewId = card.dataset.view;
+                if (viewId === 'creation') {
+                    card.addEventListener('click', handleCreateNew);
+                } else {
+                    card.addEventListener('click', () => switchView(viewId));
+                }
+            });
+
+            DOM.creationView.addEventListener('input', autoSaveDraft);
+
+
+            DOM.newClientForm.addEventListener('submit', e => {
+                e.preventDefault();
+                let clients = getSavedData('invoiceAppClients');
+                const clientData = {
+                    id: DOM.clientIdInput.value ? parseInt(DOM.clientIdInput.value) : Date.now(),
+                    name: DOM.clientNameInput.value,
+                    rcs: DOM.clientRcsInput.value,
+                    address: DOM.clientAddressInput.value
+                };
+                const existingIndex = clients.findIndex(c => c.id === clientData.id);
+                if (existingIndex > -1) clients[existingIndex] = clientData;
+                else clients.push(clientData);
+                saveData('invoiceAppClients', clients);
+                renderSavedClients();
+                DOM.newClientForm.reset();
+                DOM.clientIdInput.value = '';
+                autoBackupData();
+            });
+            document.getElementById('cancelClientForm').addEventListener('click', () => {
+                DOM.newClientForm.reset(); DOM.clientIdInput.value = '';
+            });
+
+            DOM.savedClientsList.addEventListener('click', e => {
+                const target = e.target.closest('button');
+                if (!target) return;
+                const clientId = parseInt(target.dataset.id);
+                const clients = getSavedData('invoiceAppClients');
+                const client = clients.find(c => c.id === clientId);
+                if (target.matches('.delete-client-btn')) {
+                    if (confirm(`Supprimer le client "${client.name}" ?`)) {
+                        saveData('invoiceAppClients', clients.filter(c => c.id !== clientId)); 
+                        renderSavedClients();
+                        autoBackupData();
+                    }
+                } else if (target.matches('.edit-client-btn')) {
+                    DOM.clientIdInput.value = client.id;
+                    DOM.clientNameInput.value = client.name;
+                    DOM.clientRcsInput.value = client.rcs;
+                    DOM.clientAddressInput.value = client.address;
+                } else if (target.matches('.select-client-btn')) {
+                    handleCreateNew(); // Checks for draft before overwriting with client data
+                    DOM.toNameInput.value = client.name;
+                    DOM.toAddressInput.value = client.address;
+                    switchView('creation');
+                }
+            });
+            
+            DOM.toNameInput.addEventListener('input', e => {
+                const client = getSavedData('invoiceAppClients').find(c => c.name === e.target.value);
+                if(client) DOM.toAddressInput.value = client.address;
+            });
+            
+            DOM.newItemForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                let items = getSavedData('invoiceAppItems');
+                items.push({ id: Date.now(), description: document.getElementById('newItemDescription').value, price: document.getElementById('newItemPrice').value });
+                saveData('invoiceAppItems', items);
+                renderSavedItems();
+                DOM.newItemForm.reset();
+                autoBackupData();
+            });
+
+            DOM.savedItemsList.addEventListener('click', e => {
+                const deleteBtn = e.target.closest('.delete-item-btn');
+                if (deleteBtn) {
+                    saveData('invoiceAppItems', getSavedData('invoiceAppItems').filter(item => item.id !== parseInt(deleteBtn.dataset.id))); 
+                    renderSavedItems();
+                    autoBackupData();
+                }
+            });
+            
+            document.getElementById('addItemBtn').addEventListener('click', () => addNewItem());
+            document.getElementById('saveBtn').addEventListener('click', saveCurrentDoc);
+            
+            DOM.transformBtn.addEventListener('click', () => transformDoc(parseInt(DOM.docIdInput.value)));
+            
+            DOM.itemList.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('.removeItemBtn');
+                const addSubItemBtn = e.target.closest('.addSubItemBtn');
+                if (removeBtn) { removeBtn.closest('tr').remove(); calculateTotals(); }
+                if (addSubItemBtn) addNewSubItem(undefined, addSubItemBtn.closest('tr'));
+            });
+
+            DOM.itemList.addEventListener('input', (e) => {
+                if (e.target.classList.contains('description')) {
+                    const selectedItem = getSavedData('invoiceAppItems').find(item => item.description === e.target.value);
+                    if (selectedItem) e.target.closest('tr').querySelector('.price').value = (parseFloat(selectedItem.price) || 0).toFixed(2);
+                }
+                calculateTotals();
+            });
+            
+            [DOM.taxRateInput, DOM.noVatCheckbox, DOM.depositInput].forEach(el => el.addEventListener('input', calculateTotals));
+            DOM.docType.addEventListener('change', toggleFormFields);
+
+            DOM.savedDocsList.addEventListener('click', e => {
+                const loadBtn = e.target.closest('.load-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (loadBtn) loadDoc(parseInt(loadBtn.dataset.id));
+                if (deleteBtn) deleteDoc(parseInt(deleteBtn.dataset.id));
+            });
+            
+            DOM.pendingDocsList.addEventListener('click', e => {
+                 const loadBtn = e.target.closest('.load-btn');
+                 const transformBtn = e.target.closest('.transform-btn-list');
+                 if(loadBtn) loadDoc(parseInt(loadBtn.dataset.id));
+                 if(transformBtn) transformDoc(parseInt(transformBtn.dataset.id));
+            });
+            
+            DOM.historyFilter.addEventListener('click', e => {
+                const target = e.target.closest('button');
+                if (target) {
+                    const filter = target.dataset.filter;
+                    renderSavedDocs(filter);
+                    DOM.historyFilter.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    target.classList.add('active');
+                }
+            });
+
+            DOM.settingsForm.addEventListener('submit', e => {
+                e.preventDefault();
+                localStorage.setItem('praxisSettings_fromName', DOM.settingsFromName.value);
+                localStorage.setItem('praxisSettings_fromRcs', DOM.settingsFromRcs.value);
+                localStorage.setItem('praxisSettings_fromAddress', DOM.settingsFromAddress.value);
+                localStorage.setItem('praxisSettings_fromInsurance', DOM.settingsFromInsurance.value);
+                localStorage.setItem('praxisSettings_fromRib', DOM.settingsFromRib.value);
+                localStorage.setItem('praxisSettings_logoUrl', DOM.settingsLogoUrl.value);
+                showNotification('Paramètres sauvegardés !');
+                autoBackupData();
+            });
+
+            DOM.exportDataBtn.addEventListener('click', () => {
+                const backupData = {};
+                const keysToBackup = ['invoiceAppDocs', 'invoiceAppClients', 'invoiceAppItems', 'praxisDraftDoc', 'praxisSettings_fromName', 'praxisSettings_fromRcs', 'praxisSettings_fromAddress', 'praxisSettings_fromInsurance', 'praxisSettings_fromRib', 'praxisSettings_logoUrl'];
+                keysToBackup.forEach(key => {
+                    const data = localStorage.getItem(key);
+                    if (data) {
+                        try {
+                           backupData[key] = JSON.parse(data);
+                        } catch(e) {
+                           backupData[key] = data;
+                        }
+                    }
+                });
+
+                const dataStr = JSON.stringify(backupData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const a = document.createElement('a');
+                const date = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `praxis_backup_${date}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showNotification('Exportation terminée !');
+                
+                if (localStorage.getItem('praxisAutoBackupEnabled') !== 'true') {
+                    localStorage.setItem('praxisAutoBackupEnabled', 'true');
+                    showNotification("Sauvegarde automatique activée !");
+                    autoBackupData(); 
+                }
+            });
+
+            DOM.importDataBtn.addEventListener('click', () => {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                fileInput.onchange = e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            if (confirm("Êtes-vous sûr ? L'importation d'un fichier remplacera toutes les données actuellement enregistrées.")) {
+                                try {
+                                    const importedData = JSON.parse(event.target.result);
+                                    Object.keys(importedData).forEach(key => {
+                                        let valueToStore = importedData[key];
+                                        if (typeof valueToStore !== 'string') {
+                                            valueToStore = JSON.stringify(valueToStore);
+                                        }
+                                        localStorage.setItem(key, valueToStore);
+                                    });
+                                    initializeApp();
+                                    showNotification('Données importées avec succès !');
+                                    switchView('dashboard');
+                                    autoBackupData();
+                                } catch (error) {
+                                    showNotification('Erreur: Fichier invalide.', 'error');
+                                }
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                fileInput.click();
+            });
+
+            DOM.restoreAutoBackupBtn.addEventListener('click', () => {
+                const backup = getSavedData('praxisAutoBackup');
+                if (!backup.timestamp || !backup.data) {
+                    showNotification("Aucune sauvegarde automatique trouvée.", "error");
+                    return;
+                }
+                const backupDate = new Date(backup.timestamp).toLocaleString('fr-FR');
+                if (confirm(`Voulez-vous restaurer la sauvegarde du ${backupDate} ?\n\nToutes les données actuelles non exportées seront remplacées.`)) {
+                    Object.keys(backup.data).forEach(key => {
+                        localStorage.setItem(key, backup.data[key]);
+                    });
+                    initializeApp();
+                    showNotification('Données restaurées avec succès !');
+                    switchView('dashboard');
+                }
+            });
+
+            document.getElementById('sendMailBtn').addEventListener('click', (event) => {
+                event.preventDefault(); // Empêche le rechargement de la page
+                
+                const chantierName = DOM.chantierNameInput.value.trim();
+                const docType = DOM.docType.value.toLowerCase();
+                const docNumber = document.getElementById('docNumber').value;
+
+                const subject = encodeURIComponent(chantierName || `${DOM.docType.value} n°${docNumber}`);
+                
+                const body = encodeURIComponent(
+`Bonjour,
+
+Vous trouverez ci-joint le ${docType} correspondant au chantier "${chantierName}".
+
+Cordialement,
+PRAXIS`
+                );
+
+                window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            });
+            
+            const generateSimplePDF = async (docData) => {
+                const doc = new jsPDF();
+                const logoUrl = localStorage.getItem('praxisSettings_logoUrl');
+
+                if (logoUrl) {
+                    try {
+                        const response = await fetch(logoUrl);
+                        const blob = await response.blob();
+                        const reader = new FileReader();
+                        const promise = new Promise(resolve => {
+                            reader.onload = function (e) {
+                                doc.addImage(e.target.result, 'PNG', 150, 10, 45, 15);
+                                resolve();
+                            };
+                        });
+                        reader.readAsDataURL(blob);
+                        await promise;
+                    } catch(e) {
+                        console.error("Erreur de chargement du logo:", e);
+                    }
+                }
+
+                // --- Le reste de la logique de jsPDF ---
+                const docType = DOM.docType.value;
+                const docNumber = document.getElementById('docNumber').value;
+                doc.setFontSize(22); doc.setFont('helvetica', 'bold');
+                doc.text(`${docType} n° ${docNumber}`, 14, 22);
+                doc.setFontSize(12); doc.setFont('helvetica', 'normal');
+                let startY = 30;
+                doc.text(`Date: ${new Date(document.getElementById('docDate').value).toLocaleDateString('fr-FR')}`, 14, startY);
+                startY += 6;
+                if (docType === 'Devis') {
+                    doc.text(`Offre valable: ${document.getElementById('docValidity').value}`, 14, startY); startY += 6;
+                }
+                if (docType === 'Facture' && DOM.bonDeCommandeInput.value) {
+                    doc.text(`N° Bon de Commande: ${DOM.bonDeCommandeInput.value}`, 14, startY); startY += 6;
+                }
+                
+                startY += 10;
+                doc.setFont('helvetica', 'bold'); doc.text('De:', 14, startY);
+                doc.setFont('helvetica', 'normal');
+                const fromRcs = localStorage.getItem('praxisSettings_fromRcs') || '';
+                const fromAddress = DOM.fromAddressInput.value;
+                const fromInsurance = DOM.fromInsuranceInput.value;
+                
+                let currentY = startY + 7;
+                doc.text(DOM.fromNameInput.value, 14, currentY);
+                currentY += 7;
+                if(fromRcs){
+                    doc.text(fromRcs, 14, currentY);
+                    currentY += 7;
+                }
+
+                let fromAddressLines = doc.splitTextToSize(fromAddress, 80);
+                doc.text(fromAddressLines, 14, currentY);
+                currentY += (fromAddressLines.length * 7);
+
+                if(fromInsurance) { doc.setFont('helvetica', 'italic'); doc.text(fromInsurance, 14, currentY); }
+
+                doc.setFont('helvetica', 'bold'); doc.text('Pour:', 110, startY);
+                doc.setFont('helvetica', 'normal');
+                doc.text(DOM.toNameInput.value, 110, startY + 7);
+                doc.text(DOM.toAddressInput.value, 110, startY + 14, { maxWidth: 80 });
+
+                currentY = Math.max(currentY, startY + 30) + 5;
+                if (DOM.chantierNameInput.value) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Chantier: ${DOM.chantierNameInput.value}`, 14, currentY, { maxWidth: 180 });
+                    currentY += 10;
+                }
+
+                const tableData = [];
+                document.querySelectorAll('#itemList tr').forEach(row => {
+                    if (row.classList.contains('sub-item-row')) tableData.push([`  ↳ ${row.querySelector('input').value}`, '', '', '']);
+                    else tableData.push([row.querySelector('.description').value, row.querySelector('.quantity').value, (parseFloat(row.querySelector('.price').value)||0).toFixed(2) + ' €', row.querySelector('.item-total').textContent]);
+                });
+                
+                doc.autoTable({ startY: currentY, head: [['Description', 'Qté', 'P.U. (€)', 'Total (€)']], body: tableData, theme: 'striped', headStyles: { fillColor: [74, 85, 104] } });
+
+                let finalY = doc.lastAutoTable.finalY + 10;
+                const rightX = 196, leftX = 140;
+                if (DOM.noVatCheckbox.checked) {
+                    doc.setFontSize(10).setFont('helvetica', 'italic').text("TVA non applicable - art. 293 B du CGI", rightX, finalY, { align: 'right' }); finalY += 8;
+                } else {
+                    doc.setFontSize(12).setFont('helvetica', 'normal');
+                    doc.text('Sous-total:', leftX, finalY, { align: 'right' }); doc.text(document.getElementById('subTotal').textContent, rightX, finalY, { align: 'right' }); finalY += 7;
+                    doc.text(`TVA (${DOM.taxRateInput.value}%)`, leftX, finalY, { align: 'right' }); doc.text(document.getElementById('taxAmount').textContent, rightX, finalY, { align: 'right' }); finalY += 7;
+                }
+                doc.setFontSize(14).setFont('helvetica', 'bold').text('TOTAL:', leftX, finalY, { align: 'right' }); doc.text(document.getElementById('grandTotal').textContent, rightX, finalY, { align: 'right' }); finalY += 9;
+                
+                const deposit = parseFloat(DOM.depositInput.value);
+                if (deposit > 0) {
+                    doc.setFontSize(12).setFont('helvetica', 'normal').text('Acompte versé:', leftX, finalY, { align: 'right' }); doc.text(`- ${deposit.toFixed(2)} €`, rightX, finalY, { align: 'right' }); finalY += 9;
+                }
+                doc.setFontSize(14).setFont('helvetica', 'bold').text('Solde à payer:', leftX, finalY, { align: 'right' }); doc.text(document.getElementById('balanceDue').textContent, rightX, finalY, { align: 'right' });
+
+                let notesY = doc.lastAutoTable.finalY > 220 ? doc.lastAutoTable.finalY + 15 : 235;
+                const rib = localStorage.getItem('praxisSettings_fromRib');
+                if(rib && docType === 'Facture') {
+                    doc.setFontSize(10).setFont('helvetica', 'bold').text('Coordonnées bancaires pour le règlement :', 14, notesY);
+                    doc.setFont('helvetica', 'normal').text(rib, 14, notesY + 5, { maxWidth: 180 });
+                }
+
+                const notes = document.getElementById('notes').value;
+                if (notes) doc.setFontSize(10).setFont('helvetica', 'normal').text(notes, 14, finalY + 15, { maxWidth: 100 });
+                doc.save(`${docType}_${docNumber || '001'}.pdf`);
+            }
+
+            document.getElementById('generatePdfBtn').addEventListener('click', generateSimplePDF);
+
+
+            document.getElementById('selectAllHistory').addEventListener('change', (e) => {
+                document.querySelectorAll('#savedDocsList .doc-select-checkbox:not(:disabled)').forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+            });
+
+            document.getElementById('emailSelectionBtn').addEventListener('click', () => {
+                const selectedIds = [...document.querySelectorAll('#savedDocsList .doc-select-checkbox:checked')].map(cb => parseInt(cb.dataset.id));
+                
+                if (selectedIds.length === 0) {
+                    showNotification('Veuillez sélectionner au moins une facture.', 'error');
+                    return;
+                }
+
+                const allDocs = getSavedData('invoiceAppDocs');
+                const selectedInvoices = allDocs.filter(doc => selectedIds.includes(doc.id));
+
+                const accountantEmail = prompt("Veuillez entrer l'adresse e-mail de votre comptable :");
+                if (!accountantEmail) return; 
+
+                const subject = encodeURIComponent(`Transmission des factures pour votre comptabilité`);
+                const body = encodeURIComponent(
+        `Bonjour,
+
+Veuillez trouver ci-dessous la liste des factures pour la comptabilité.
+Je vous joins les PDF correspondants avec ce mail.
+
+Factures concernées :
+${selectedInvoices.map(inv => `- ${inv.docNumber} (${inv.toName}) - ${inv.grandTotal}`).join('\n')}
+
+Cordialement,
+${DOM.fromNameInput.value || 'Votre Nom'}
+`
+                );
+                
+                window.location.href = `mailto:${accountantEmail}?subject=${subject}&body=${body}`;
+                showNotification("Votre logiciel de messagerie va s'ouvrir.");
+            });
+
+
+            // --- Initialisation ---
+            function initializeApp() {
+                // Load settings into settings form
+                DOM.settingsFromName.value = localStorage.getItem('praxisSettings_fromName') || '';
+                DOM.settingsFromRcs.value = localStorage.getItem('praxisSettings_fromRcs') || '';
+                DOM.settingsFromAddress.value = localStorage.getItem('praxisSettings_fromAddress') || '';
+                DOM.settingsFromInsurance.value = localStorage.getItem('praxisSettings_fromInsurance') || '';
+                DOM.settingsFromRib.value = localStorage.getItem('praxisSettings_fromRib') || '';
+                DOM.settingsLogoUrl.value = localStorage.getItem('praxisSettings_logoUrl') || '';
+
+                renderAll();
+                
+                switchView('dashboard');
+            }
+            
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
+
